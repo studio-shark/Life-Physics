@@ -9,7 +9,7 @@ import {
 import { generateSmartTaskBreakdown, getArchitectureAdvice } from '../services/geminiService.ts';
 import { CloudService } from '../services/cloudService.ts';
 
-const STORAGE_KEY = 'life_physics_rpg_state_v10';
+const STORAGE_KEY = 'life_physics_prod_state';
 
 const XP_VALUES = {
   'Easy Start': 100,
@@ -221,7 +221,7 @@ export const useAppViewModel = () => {
     const baseUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE';
     const params = new URLSearchParams({
       text: `Quest: ${title}`,
-      details: `${description}\n\nSynced via Life Physics Archetect.`,
+      details: `${description}\n\nSynced via Life Physics.`,
       location: 'Life Physics Dashboard',
     });
     window.open(`${baseUrl}&${params.toString()}`, '_blank');
@@ -237,7 +237,7 @@ export const useAppViewModel = () => {
       const result = await generateSmartTaskBreakdown(taskTitle, labels, targetTask.selectedSkill);
       setAiContentMap(prev => ({ ...prev, [taskId]: result }));
     } catch (err) {
-      console.error("AI Insight Error:", err);
+      // Production fail silently
     } finally {
       setLoadingTasks(prev => ({ ...prev, [taskId]: false }));
     }
@@ -250,6 +250,8 @@ export const useAppViewModel = () => {
     try {
       const advice = await getArchitectureAdvice(phase);
       setArchAdvice(advice);
+    } catch (err) {
+      // Production fail silently
     } finally {
       setIsArchLoading(false);
     }

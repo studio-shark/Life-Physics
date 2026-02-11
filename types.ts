@@ -66,7 +66,8 @@ export interface Reminder {
 export enum AppTab {
   CHECKLIST = 'flow',
   GUIDE = 'guide',
-  ANALYTICS = 'balance'
+  ANALYTICS = 'balance',
+  WIDGETS = 'widgets'
 }
 
 export interface AppState {

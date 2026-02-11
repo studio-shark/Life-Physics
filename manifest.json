@@ -3,10 +3,12 @@
   "name": "Life Physics Architect",
   "short_name": "LifePhysics",
   "description": "Understand the science of your habits and emotions using simple laws of motion and energy.",
-  "start_url": "/",
+  "start_url": ".",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a0c",
   "theme_color": "#10b981",
+  "categories": ["productivity", "health", "lifestyle"],
   "orientation": "portrait",
   "icons": [
     {

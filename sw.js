@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'life-physics-v2';
+const CACHE_NAME = 'life-physics-prod-v1';
 const ASSETS = [
   '/',
   '/index.html',
@@ -10,17 +10,13 @@ const ASSETS = [
   '/constants.tsx'
 ];
 
-// On install, cache all core assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
   self.skipWaiting();
 });
 
-// Clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -29,20 +25,21 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  self.clients.claim();
 });
 
-// Network-first falling back to cache for most requests
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests like Google APIs unless we want to cache them specifically
-  if (!event.request.url.startsWith(self.location.origin)) return;
+  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) return;
 
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const clonedRes = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clonedRes));
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
+      return fetch(event.request).then((response) => {
+        if (!response || response.status !== 200 || response.type !== 'basic') return response;
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
         return response;
-      })
-      .catch(() => caches.match(event.request))
+      });
+    })
   );
 });

@@ -19,21 +19,19 @@ const Header: React.FC<HeaderProps> = ({
   onGoogleSignIn,
   onSignOut
 }) => {
-  const [gsiError, setGsiError] = useState(false);
+  const [initError, setInitError] = useState(false);
 
   useEffect(() => {
     const google = (window as any).google;
     if (google && google.accounts) {
       try {
         google.accounts.id.initialize({
-          // Note: Replace this with your actual Client ID from Google Cloud Console to resolve 401 for production.
           client_id: "777000000000-placeholder.apps.googleusercontent.com", 
           callback: onGoogleSignIn,
           auto_select: false,
           cancel_on_tap_outside: true,
         });
         
-        // Render Desktop Button
         const btnElem = document.getElementById("google-signin-btn");
         if (!authUser && btnElem) {
           google.accounts.id.renderButton(
@@ -42,7 +40,6 @@ const Header: React.FC<HeaderProps> = ({
           );
         }
 
-        // Render Mobile Button (Even if in App.tsx, we target it by ID)
         const mobileBtnElem = document.getElementById("google-signin-btn-mobile");
         if (!authUser && mobileBtnElem) {
           google.accounts.id.renderButton(
@@ -51,23 +48,21 @@ const Header: React.FC<HeaderProps> = ({
           );
         }
       } catch (err) {
-        console.warn("GSI Init Error - Likely invalid Client ID or blocked script.");
-        setGsiError(true);
+        setInitError(true);
       }
     } else {
-      setGsiError(true);
+      setInitError(true);
     }
   }, [authUser, onGoogleSignIn]);
 
-  // Fallback handler for testing without a valid client_id
-  const handleDemoSignIn = () => {
+  const handleGuestSignIn = () => {
     onGoogleSignIn({
-      credential: "mock_jwt_token." + btoa(JSON.stringify({
-        sub: "demo-user-123",
-        name: "Test Architect",
-        email: "test@example.com",
-        picture: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-      })) + ".signature"
+      credential: "guest_token." + btoa(JSON.stringify({
+        sub: "guest-user",
+        name: "Guest Architect",
+        email: "guest@lifephysics.io",
+        picture: "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest"
+      })) + ".sig"
     });
   };
 
@@ -76,6 +71,7 @@ const Header: React.FC<HeaderProps> = ({
       case AppTab.CHECKLIST: return "Daily Flow";
       case AppTab.GUIDE: return "Growth Path";
       case AppTab.ANALYTICS: return "Life Balance";
+      case AppTab.WIDGETS: return "System Links";
       default: return "";
     }
   };
@@ -91,30 +87,29 @@ const Header: React.FC<HeaderProps> = ({
           <div className="hidden md:flex gap-3">
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${isOnline ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-500 border-slate-700'}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`}></span>
-              {isOnline ? 'Sync Active' : 'Offline Mode'}
+              {isOnline ? 'Live' : 'Cached'}
             </div>
             {authUser && (
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${syncStatus === 'synced' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-orange-500/10 text-orange-400 border-orange-500/20'}`}>
-                {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'synced' ? 'Cloud Synced' : 'Sync Paused'}
+                {syncStatus === 'syncing' ? '...' : syncStatus === 'synced' ? 'Synced' : 'Pause'}
               </div>
             )}
           </div>
         </div>
         <p className="hidden md:block text-slate-500 text-[10px] md:text-sm font-bold uppercase tracking-widest ml-1">
-          BehaviorDynamics Framework v2.5
+          Architect Core v1.0.0
         </p>
       </div>
 
-      {/* Desktop Only Auth Bar */}
       <div className="hidden md:flex items-center gap-4 bg-slate-900/30 p-3 rounded-[2rem] border border-slate-800/50">
         {!authUser ? (
           <div className="flex items-center gap-4">
-             {gsiError && (
+             {initError && (
                <button 
-                onClick={handleDemoSignIn}
-                className="px-4 py-2 bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all"
+                onClick={handleGuestSignIn}
+                className="px-4 py-2 bg-slate-800 border border-slate-700 text-slate-400 rounded-full text-[10px] font-black uppercase hover:bg-emerald-600 hover:text-white hover:border-emerald-500 transition-all"
                >
-                 Bypass 401 (Demo)
+                 Continue as Guest
                </button>
              )}
              <div id="google-signin-btn" className="h-9"></div>
@@ -123,7 +118,7 @@ const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-5 pl-4">
             <div className="text-right">
               <p className="text-[10px] font-black text-white uppercase tracking-tight">{authUser.name}</p>
-              <button onClick={onSignOut} className="text-[8px] font-black text-rose-500 hover:text-rose-400 uppercase tracking-[0.3em] transition-colors mt-0.5">Logout</button>
+              <button onClick={onSignOut} className="text-[8px] font-black text-rose-500 hover:text-rose-400 uppercase tracking-[0.3em] transition-colors mt-0.5">Sign Out</button>
             </div>
             <div className="relative">
               <img src={authUser.picture} className="w-10 h-10 rounded-2xl border-2 border-emerald-500/30 shadow-lg shadow-emerald-500/10" alt="Avatar" />
