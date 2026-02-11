@@ -1,0 +1,25 @@
+
+{
+  "name": "Life Physics Architect",
+  "short_name": "LifePhysics",
+  "description": "Understand the science of your habits and emotions using simple laws of motion and energy.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0c",
+  "theme_color": "#10b981",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://api.dicebear.com/7.x/shapes/svg?seed=LifePhysics&backgroundColor=10b981",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://api.dicebear.com/7.x/shapes/svg?seed=LifePhysics&backgroundColor=10b981",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

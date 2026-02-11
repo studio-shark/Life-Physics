@@ -1,0 +1,8 @@
+{
+  "name": "Life Physics",
+  "description": "Understand the science of your habits and emotions using simple laws of motion and energy.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

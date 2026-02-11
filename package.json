@@ -1,0 +1,13 @@
+
+{
+  "name": "life-physics",
+  "version": "1.0.0",
+  "description": "Life Physics - Science of Habits and Emotions",
+  "private": true,
+  "scripts": {
+    "start": "npx serve -s . -l 8080"
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  }
+}
