@@ -13,6 +13,7 @@ import { useWidgetSync } from './hooks/useWidgetSync.ts';
 const App: React.FC = () => {
   const { state, actions } = useAppViewModel();
   const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { 
@@ -44,8 +45,8 @@ const App: React.FC = () => {
   useWidgetSync(level, xp, xpToNextLevel, tasks);
 
   const navItems = [
-    { id: AppTab.CHECKLIST, label: 'Daily Flow', icon: <ICONS.Check />, color: 'text-emerald-400' },
-    { id: AppTab.HISTORY, label: 'History Log', icon: (
+    { id: AppTab.CHECKLIST, label: 'Tasks', icon: <ICONS.Check />, color: 'text-emerald-400' },
+    { id: AppTab.HISTORY, label: 'History', icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
@@ -63,13 +64,18 @@ const App: React.FC = () => {
   ];
 
   const pendingTasks = tasks.filter(t => t.status === 'pending');
-  const completedTasks = tasks.filter(t => t.status === 'completed').sort((a, b) => {
+  const allCompletedTasks = tasks.filter(t => t.status === 'completed').sort((a, b) => {
     const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
     const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
     return dateB - dateA;
   });
 
-  const completedCount = completedTasks.length;
+  const filteredCompletedTasks = allCompletedTasks.filter(task => 
+    task.title.toLowerCase().includes(historySearchQuery.toLowerCase()) ||
+    task.description.toLowerCase().includes(historySearchQuery.toLowerCase())
+  );
+
+  const completedCount = allCompletedTasks.length;
 
   const getAvatarUrl = () => {
     if (selectedAvatarId === 'default' && authUser) return authUser.picture;
@@ -79,7 +85,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row text-slate-100 bg-[#0a0a0c]">
-      <aside className="bg-[#111114] border-r border-slate-800 transition-all duration-300 flex-shrink-0 flex flex-col w-full md:w-80">
+      <aside className="bg-[#111214] border-r border-slate-800 transition-all duration-300 flex-shrink-0 flex flex-col w-full md:w-80">
         <div className="p-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="bg-emerald-600 p-2.5 rounded-2xl text-white shadow-lg shadow-emerald-900/40">
@@ -198,7 +204,7 @@ const App: React.FC = () => {
                 />
               )) : (
                 <div className="text-center py-20 bg-slate-900/20 border border-dashed border-slate-800 rounded-[3rem]">
-                   <p className="text-slate-500 font-black uppercase tracking-[0.3em]">No active quests. System idle.</p>
+                   <p className="text-slate-500 font-black uppercase tracking-[0.3em]">No active tasks. System idle.</p>
                 </div>
               )}
             </div>
@@ -206,16 +212,33 @@ const App: React.FC = () => {
 
           {activeTab === AppTab.HISTORY && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between mb-8">
-                 <h2 className="text-2xl font-black text-white uppercase tracking-tight">Completed Memories</h2>
-                 <span className="bg-emerald-500/10 text-emerald-400 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
-                   {completedTasks.length} Archived
-                 </span>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                 <h2 className="text-2xl font-black text-white uppercase tracking-tight">Completed Tasks</h2>
+                 
+                 <div className="flex items-center gap-3">
+                   <div className="relative group flex-1 md:w-64">
+                      <input 
+                        type="text"
+                        value={historySearchQuery}
+                        onChange={(e) => setHistorySearchQuery(e.target.value)}
+                        placeholder="SCAN ARCHIVES..."
+                        className="w-full bg-[#111214] border border-slate-800 rounded-2xl py-3 px-12 text-[10px] font-black text-white placeholder:text-slate-700 focus:border-emerald-500 outline-none transition-all uppercase tracking-widest"
+                      />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-emerald-500 transition-colors">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
+                   </div>
+                   <span className="bg-emerald-500/10 text-emerald-400 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
+                     {filteredCompletedTasks.length} Result{filteredCompletedTasks.length !== 1 ? 's' : ''}
+                   </span>
+                 </div>
               </div>
               
-              {completedTasks.length > 0 ? (
+              {filteredCompletedTasks.length > 0 ? (
                 <div className="grid gap-4">
-                  {completedTasks.map(task => (
+                  {filteredCompletedTasks.map(task => (
                     <ChecklistItem 
                       key={task.id} 
                       task={task} 
@@ -232,7 +255,7 @@ const App: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-center py-20 bg-slate-900/20 border border-dashed border-slate-800 rounded-[3rem]">
-                   <p className="text-slate-500 font-black uppercase tracking-[0.3em]">History empty. The timeline awaits your action.</p>
+                   <p className="text-slate-500 font-black uppercase tracking-[0.3em]">History empty.</p>
                 </div>
               )}
             </div>

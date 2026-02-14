@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AppTab, AuthUser } from '../types';
 
@@ -18,8 +19,8 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const getTitle = () => {
     switch(activeTab) {
-      case AppTab.CHECKLIST: return "Daily Flow";
-      case AppTab.HISTORY: return "Task History";
+      case AppTab.CHECKLIST: return "Tasks";
+      case AppTab.HISTORY: return "History";
       case AppTab.ANALYTICS: return "Life Balance";
       case AppTab.WIDGETS: return "System Links";
       case AppTab.SHOP: return "Avatar Vault";
