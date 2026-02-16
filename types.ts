@@ -1,7 +1,9 @@
+
 export interface Prerequisite {
   id: string;
   label: string;
   completed: boolean;
+  completedAt?: string;
 }
 
 export interface User {
@@ -49,6 +51,9 @@ export interface Task {
   cycle?: number;
   selectedSkill?: string;
   completedAt?: string;
+  // UI Helpers
+  isPrereq?: boolean;
+  parentId?: string;
 }
 
 export interface Comment {

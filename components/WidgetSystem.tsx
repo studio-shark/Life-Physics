@@ -154,6 +154,51 @@ const WidgetSystem: React.FC<WidgetSystemProps> = ({ level, xp, xpToNextLevel, t
           </div>
         </div>
 
+        {/* Widget 3: Command Console */}
+        <div className="space-y-4 md:col-span-2">
+          <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-4">Command Console (4x1)</p>
+          <div className="bg-[#1a1c22] rounded-[2.5rem] p-8 border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center gap-8">
+             
+             {/* Preview Area */}
+             <div className="flex-1 w-full relative">
+                <div className="absolute inset-0 bg-emerald-500/5 blur-2xl rounded-full"></div>
+                <div className="relative bg-[#111214] border border-slate-700/50 rounded-3xl p-4 flex items-center justify-between gap-4 shadow-xl">
+                    <div className="flex items-center gap-3 opacity-50">
+                       <div className="w-5 h-5 rounded-md border-2 border-slate-600"></div>
+                       <div className="h-2 w-24 bg-slate-700 rounded-full"></div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <div className="h-10 px-4 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/40">
+                          <span className="text-white font-black text-lg">+</span>
+                       </div>
+                       <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/40">
+                          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                       </div>
+                    </div>
+                </div>
+                <div className="mt-3 flex justify-center">
+                   <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Interactive Home Screen Control</span>
+                </div>
+             </div>
+
+             {/* Action Button */}
+             <div className="w-full md:w-auto">
+               <button 
+                  onClick={() => canPinWidgets ? handlePinWidget('quickAdd', 'Command Console') : showManualInstructions()}
+                  disabled={pinningWidget === 'quickAdd'}
+                  className="w-full md:w-56 py-4 rounded-2xl bg-emerald-600 text-white font-black uppercase text-[10px] tracking-widest hover:bg-emerald-500 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-lg shadow-emerald-900/20"
+                >
+                  {pinningWidget === 'quickAdd' ? 'Syncing...' : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                      {canPinWidgets ? 'Add to Home' : 'Manual Install'}
+                    </>
+                  )}
+                </button>
+             </div>
+          </div>
+        </div>
+
         {/* Shortcut 1: App Menu Simulation */}
         <div className="space-y-4 md:col-span-2">
           <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-4">Android Launcher Shortcuts (Long-Press)</p>

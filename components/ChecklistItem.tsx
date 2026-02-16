@@ -111,6 +111,8 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
   };
 
   const getDifficultyColor = (diffValue: string) => {
+    if (task.status === 'completed') return 'bg-slate-800 text-slate-500 border-slate-700';
+    
     switch(task.difficulty) {
       case 'Easy Start': return 'bg-emerald-900/20 text-emerald-400 border-emerald-900/30';
       case 'Some Weight': 
@@ -127,12 +129,12 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
   const completedPrereqs = [...(task.prerequisites?.filter(p => p.completed) || [])].reverse();
 
   return (
-    <div className={`group bg-[#111214] rounded-[2rem] border transition-all duration-500 overflow-visible relative ${task.status === 'completed' ? 'border-emerald-900/30 bg-emerald-900/5 opacity-80' : 'border-slate-800 hover:border-emerald-500/30 shadow-2xl shadow-black/20'}`}>
+    <div className={`group rounded-[2rem] border transition-all duration-500 overflow-visible relative ${task.status === 'completed' ? 'bg-[#0e0e11] border-slate-800/60' : 'bg-[#111214] border-slate-800 hover:border-emerald-500/30 shadow-2xl shadow-black/20'}`}>
       
       <div className="p-7 flex items-start gap-6 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
         <div 
           onClick={handleToggle}
-          className={`relative flex-shrink-0 w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all duration-300 ${task.status === 'completed' ? 'bg-emerald-600 border-emerald-600 scale-90 rotate-[360deg]' : 'border-slate-700 bg-black group-hover:border-emerald-500 shadow-xl shadow-black/40'}`}
+          className={`relative flex-shrink-0 w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all duration-300 ${task.status === 'completed' ? 'bg-emerald-900/20 border-emerald-700/50' : 'border-slate-700 bg-black group-hover:border-emerald-500 shadow-xl shadow-black/40'}`}
         >
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible z-50">
             {popups.filter(p => p.type === 'task').map(p => (
@@ -151,7 +153,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
           </div>
 
           {task.status === 'completed' ? (
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+            <svg className="w-8 h-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
           ) : (
             <div className="flex flex-col items-center">
               <span className="text-[8px] font-black text-emerald-500/50 uppercase leading-none">Quest</span>
@@ -162,14 +164,14 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
 
         <div className="flex-1 relative">
           <div className="flex flex-wrap items-center gap-3 mb-2">
-            <h3 className={`font-black text-xl tracking-tight transition-all uppercase ${task.status === 'completed' ? 'text-slate-600' : 'text-slate-100'}`}>
+            <h3 className={`font-black text-xl tracking-tight transition-all uppercase ${task.status === 'completed' ? 'text-slate-400 decoration-slate-600/50' : 'text-slate-100'}`}>
               {task.title}
             </h3>
             <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all duration-700 ${getDifficultyColor(task.difficulty)}`}>
               {getDisplayedDifficulty()}
             </span>
           </div>
-          <p className="text-sm text-slate-500 font-bold leading-relaxed">{task.description}</p>
+          <p className={`text-sm font-bold leading-relaxed ${task.status === 'completed' ? 'text-slate-600' : 'text-slate-500'}`}>{task.description}</p>
         </div>
       </div>
 
@@ -238,7 +240,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
               </div>
             ))}
 
-            {activePrereqs.length === 0 && (
+            {activePrereqs.length === 0 && task.status !== 'completed' && (
               <div className="flex gap-2">
                 <button 
                   onClick={() => handleAddRequest()}

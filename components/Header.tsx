@@ -21,8 +21,8 @@ const Header: React.FC<HeaderProps> = ({
     switch(activeTab) {
       case AppTab.CHECKLIST: return "Tasks";
       case AppTab.HISTORY: return "History";
-      case AppTab.ANALYTICS: return "Life Balance";
-      case AppTab.WIDGETS: return "System Links";
+      case AppTab.ANALYTICS: return "Analytics";
+      case AppTab.WIDGETS: return "Widgets";
       case AppTab.SHOP: return "Avatar Vault";
       default: return "";
     }

@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Device } from '@capacitor/device';
 import { Task, AppTab, Project, User, AuthUser, Prerequisite } from '../types.ts';
@@ -215,7 +216,7 @@ export const useAppViewModel = () => {
               addCoins(-PREREQ_XP);
               triggerHaptic(10);
             }
-            return { ...p, completed: isCompleting };
+            return { ...p, completed: isCompleting, completedAt: isCompleting ? new Date().toISOString() : undefined };
           }
           return p;
         });
