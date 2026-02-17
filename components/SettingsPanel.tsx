@@ -1,10 +1,11 @@
-
 import React from 'react';
+import LoginButton from './LoginButton.tsx';
 
 interface SettingsPanelProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   authUser: any;
+  onLogin: (token: string) => void;
   appVersion: string;
 }
 
@@ -12,8 +13,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   theme, 
   onToggleTheme, 
   authUser,
+  onLogin,
   appVersion 
 }) => {
+  const isHardware = !authUser || authUser.token === 'hardware_identity';
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       
@@ -21,6 +25,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-2">System Configuration</h2>
         <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Architect Control Panel</p>
       </div>
+
+      {isHardware && (
+        <div className="bg-slate-100 dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center gap-4">
+           <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-lg">
+             <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+           </div>
+           <div>
+             <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase">Cloud Sync</h3>
+             <p className="text-xs text-slate-500 font-bold mt-1">Sign in to sync your progress across devices.</p>
+           </div>
+           <div className="mt-2">
+             <LoginButton onSuccess={onLogin} />
+           </div>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-[#111214] rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-xl transition-colors duration-300">
         <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-6">Interface Appearance</h3>
@@ -58,9 +77,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
           <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
              <span className="text-slate-600 dark:text-slate-400 font-bold text-sm">Token Status</span>
-             <span className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-500">
-               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-               Active
+             <span className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest ${isHardware ? 'text-amber-500' : 'text-emerald-500'}`}>
+               <span className={`w-2 h-2 rounded-full ${isHardware ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`}></span>
+               {isHardware ? 'Local Hardware' : 'Google Verified'}
              </span>
           </div>
           <div className="flex items-center justify-between">

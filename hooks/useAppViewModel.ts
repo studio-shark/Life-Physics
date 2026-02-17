@@ -1,6 +1,6 @@
-
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Device } from '@capacitor/device';
+import { jwtDecode } from 'jwt-decode';
 import { Task, AppTab, Project, User, AuthUser, Prerequisite } from '../types.ts';
 import { 
   INITIAL_TASKS, 
@@ -35,6 +35,7 @@ export const useAppViewModel = () => {
   const [selectedAvatarId, setSelectedAvatarId] = useState<string>('default');
   
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isLoading, setIsLoading] = useState(true);
@@ -71,52 +72,96 @@ export const useAppViewModel = () => {
     localStorage.setItem(`${STORAGE_PREFIX}theme`, theme);
   }, [theme]);
 
-  const toggleTheme = useCallback(() => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-    triggerHaptic(50);
+  // Handle Google Login
+  const handleGoogleLogin = useCallback((token: string) => {
+    try {
+      setGoogleToken(token);
+      const decoded: any = jwtDecode(token);
+      
+      const user: AuthUser = {
+        id: decoded.sub,
+        name: decoded.name,
+        email: decoded.email,
+        picture: decoded.picture,
+        token: token
+      };
+      
+      setAuthUser(user);
+      setSyncStatus('syncing');
+      
+      // Attempt to sync with backend
+      fetch('/api/tasks', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success' && data.tasks) {
+          // Merge or replace logic here - simple replacement for now
+          if (data.tasks.length > 0) {
+             const parsedTasks = data.tasks.map((t: any) => ({
+               ...t,
+               prerequisites: typeof t.prerequisites === 'string' ? JSON.parse(t.prerequisites) : t.prerequisites
+             }));
+             setTasks(parsedTasks);
+          }
+          setSyncStatus('synced');
+        }
+      })
+      .catch(err => {
+        console.error("Sync failed", err);
+        setSyncStatus('error');
+      });
+
+    } catch (e) {
+      console.error("Login processing error", e);
+    }
   }, []);
 
   useEffect(() => {
     const initDeviceAuth = async () => {
       setIsLoading(true);
       try {
-        const idResult = await Device.getId();
-        const info = await Device.getInfo();
-        const deviceId = idResult.identifier;
-        
-        const hardwareUser: AuthUser = {
-          id: deviceId,
-          name: `Architect-${deviceId.slice(0, 4)}`,
-          email: `${deviceId.slice(0, 8)}@${info.model}.internal`,
-          picture: `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${deviceId}`,
-          token: 'hardware_identity'
-        };
+        // If no Google User, fall back to hardware ID
+        if (!authUser) {
+            const idResult = await Device.getId();
+            const info = await Device.getInfo();
+            const deviceId = idResult.identifier;
+            
+            const hardwareUser: AuthUser = {
+              id: deviceId,
+              name: `Architect-${deviceId.slice(0, 4)}`,
+              email: `${deviceId.slice(0, 8)}@${info.model}.internal`,
+              picture: `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${deviceId}`,
+              token: 'hardware_identity'
+            };
+            setAuthUser(hardwareUser);
 
-        setAuthUser(hardwareUser);
-        
-        const storageKey = STORAGE_PREFIX + deviceId;
-        const saved = localStorage.getItem(storageKey);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setTasks(parsed.tasks || INITIAL_TASKS);
-          setProjects(parsed.projects || INITIAL_PROJECTS);
-          setUsers(parsed.users || INITIAL_USERS);
-          setXp(parsed.xp || 0);
-          setCoins(parsed.coins || 0);
-          setLevel(parsed.level || 1);
-          setOwnedAvatarIds(parsed.ownedAvatarIds || ['default']);
-          setSelectedAvatarId(parsed.selectedAvatarId || 'default');
-        } else {
-          setTasks(INITIAL_TASKS);
-          setProjects(INITIAL_PROJECTS);
-          setUsers(INITIAL_USERS);
+            // Load local storage for hardware user
+            const storageKey = STORAGE_PREFIX + deviceId;
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                setTasks(parsed.tasks || INITIAL_TASKS);
+                setProjects(parsed.projects || INITIAL_PROJECTS);
+                setUsers(parsed.users || INITIAL_USERS);
+                setXp(parsed.xp || 0);
+                setCoins(parsed.coins || 0);
+                setLevel(parsed.level || 1);
+                setOwnedAvatarIds(parsed.ownedAvatarIds || ['default']);
+                setSelectedAvatarId(parsed.selectedAvatarId || 'default');
+            } else {
+                setTasks(INITIAL_TASKS);
+                setProjects(INITIAL_PROJECTS);
+                setUsers(INITIAL_USERS);
+            }
         }
         setSyncStatus('synced');
       } catch (err) {
         console.error("Hardware ID failed, falling back to local guest", err);
         setSyncStatus('error');
       } finally {
-        // Add a small artificial delay to ensure the UI doesn't flash too quickly
         setTimeout(() => {
           setIsLoading(false);
         }, 800);
@@ -134,15 +179,32 @@ export const useAppViewModel = () => {
     };
   }, []);
 
+  // Save state and Sync to Cloud if logged in
   useEffect(() => {
     if (authUser && tasks.length > 0) {
       const stateToSave = { tasks, projects, users, xp, coins, level, authUser, ownedAvatarIds, selectedAvatarId };
       const storageKey = STORAGE_PREFIX + authUser.id;
       localStorage.setItem(storageKey, JSON.stringify(stateToSave));
+      
       const pendingCount = tasks.filter(t => t.status === 'pending').length;
       updateAppBadge(pendingCount);
+
+      // Background Sync to Server
+      if (googleToken && isOnline) {
+        setSyncStatus('syncing');
+        fetch('/api/tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${googleToken}`
+            },
+            body: JSON.stringify({ tasks })
+        })
+        .then(() => setSyncStatus('synced'))
+        .catch(() => setSyncStatus('error'));
+      }
     }
-  }, [tasks, projects, users, xp, coins, level, authUser, updateAppBadge, ownedAvatarIds, selectedAvatarId]);
+  }, [tasks, projects, users, xp, coins, level, authUser, updateAppBadge, ownedAvatarIds, selectedAvatarId, googleToken, isOnline]);
 
   const buyAvatar = useCallback((id: string, price: number) => {
     if (coins >= price && !ownedAvatarIds.includes(id)) {
@@ -309,6 +371,10 @@ export const useAppViewModel = () => {
     }
   }, []);
 
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
   const progress = useMemo(() => {
     if (tasks.length === 0) return 0;
     const completed = tasks.filter(t => t.status === 'completed').length;
@@ -349,7 +415,8 @@ export const useAppViewModel = () => {
       addCalendarReminder,
       buyAvatar,
       selectAvatar,
-      toggleTheme
+      toggleTheme,
+      handleGoogleLogin
     }
   };
 };

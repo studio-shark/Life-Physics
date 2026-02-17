@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { AppTab, Task } from './types.ts';
 import { ICONS } from './constants.tsx';
@@ -405,6 +404,7 @@ const App: React.FC = () => {
               theme={theme}
               onToggleTheme={actions.toggleTheme}
               authUser={authUser}
+              onLogin={actions.handleGoogleLogin}
               appVersion="v1.1.0"
             />
           )}
