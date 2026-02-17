@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   BarChart, 
@@ -128,7 +127,8 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ tasks, state }) => {
           <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
           Realm Distribution
         </h3>
-        <div className="h-64 w-full">
+        {/* CSS Fix: Explicit style height/width/flex-shrink for Recharts parent to prevent flex collapse */}
+        <div style={{ width: '100%', height: 400, minHeight: 400, flexShrink: 0 }}>
           {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={categoryData} barSize={20}>
@@ -175,7 +175,8 @@ const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({ tasks, state }) => {
            </h3>
         </div>
         
-        <div className="h-64 w-full relative z-10">
+        {/* CSS Fix: Explicit style height/width/flex-shrink for Recharts parent to prevent flex collapse */}
+        <div className="relative z-10" style={{ width: '100%', height: 400, minHeight: 400, flexShrink: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
