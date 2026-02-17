@@ -37,6 +37,7 @@ export const useAppViewModel = () => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [isLoading, setIsLoading] = useState(true);
 
   const triggerHaptic = (pattern: number | number[] = 50) => {
     if ('vibrate' in navigator) {
@@ -77,6 +78,7 @@ export const useAppViewModel = () => {
 
   useEffect(() => {
     const initDeviceAuth = async () => {
+      setIsLoading(true);
       try {
         const idResult = await Device.getId();
         const info = await Device.getInfo();
@@ -113,6 +115,11 @@ export const useAppViewModel = () => {
       } catch (err) {
         console.error("Hardware ID failed, falling back to local guest", err);
         setSyncStatus('error');
+      } finally {
+        // Add a small artificial delay to ensure the UI doesn't flash too quickly
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 800);
       }
     };
 
@@ -327,7 +334,8 @@ export const useAppViewModel = () => {
       rankTitle: level < 5 ? "Fragment Seeker" : level < 10 ? "Momentum Builder" : "Pattern Mapper",
       authUser,
       syncStatus,
-      theme
+      theme,
+      isLoading
     },
     actions: {
       setActiveTab,

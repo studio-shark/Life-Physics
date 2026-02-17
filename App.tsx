@@ -64,7 +64,8 @@ const App: React.FC = () => {
     rankTitle,
     authUser,
     syncStatus,
-    theme
+    theme,
+    isLoading
   } = state;
 
   useEffect(() => {
@@ -263,7 +264,21 @@ const App: React.FC = () => {
         <div className="max-w-4xl mx-auto mt-8 md:mt-0">
           {activeTab === AppTab.CHECKLIST && (
             <div className="grid gap-8">
-              {pendingTasks.length > 0 ? pendingTasks.map(task => (
+              {isLoading ? (
+                // Skeleton Loading State for Checklist
+                Array.from({ length: 4 }).map((_, i) => (
+                   <div key={`skeleton-task-${i}`} className="bg-white dark:bg-[#111214] border border-slate-200 dark:border-slate-800 rounded-[2rem] p-7 flex items-start gap-6 animate-pulse">
+                      <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800"></div>
+                      <div className="flex-1 space-y-3 pt-1">
+                         <div className="flex items-center gap-3">
+                           <div className="h-6 w-1/3 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+                           <div className="h-6 w-20 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+                         </div>
+                         <div className="h-4 w-2/3 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+                      </div>
+                   </div>
+                ))
+              ) : pendingTasks.length > 0 ? pendingTasks.map(task => (
                 <ChecklistItem 
                   key={task.id} 
                   task={task} 

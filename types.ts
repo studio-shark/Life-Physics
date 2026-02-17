@@ -100,4 +100,5 @@ export interface AppState {
   authUser: AuthUser | null;
   syncStatus: 'idle' | 'syncing' | 'synced' | 'error';
   theme: 'dark' | 'light';
+  isLoading: boolean;
 }
