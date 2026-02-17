@@ -385,7 +385,7 @@ export const useAppViewModel = () => {
   }, []);
 
   // New: Add Task Function
-  const addTask = useCallback((title: string, description: string = '', difficulty: 'Easy Start' | 'Some Weight' | 'Heavy Weight' = 'Some Weight') => {
+  const addTask = useCallback(async (title: string, description: string = '', difficulty: 'Easy Start' | 'Some Weight' | 'Heavy Weight' = 'Some Weight') => {
       const newTask: Task = {
           id: Math.random().toString(36).substr(2, 9),
           projectId: 'p1',
@@ -398,8 +398,31 @@ export const useAppViewModel = () => {
           prerequisites: []
       };
 
+      // Explicitly await POST if authenticated
+      if (authUser && googleToken && isOnline && authUser.token !== 'hardware_identity') {
+          try {
+              setSyncStatus('syncing');
+              const response = await fetch('/api/tasks', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${googleToken}`
+                  },
+                  body: JSON.stringify(newTask)
+              });
+              
+              if (!response.ok) {
+                  throw new Error('Failed to create task on server');
+              }
+              setSyncStatus('synced');
+          } catch (e) {
+              console.error("Failed to post task", e);
+              setSyncStatus('error');
+              return; // Halt update on error
+          }
+      }
+
       setTasks(prev => [...prev, newTask]);
-      syncTaskToCloud(newTask, 'POST');
       triggerHaptic(30);
   }, [authUser, googleToken, isOnline]);
 
