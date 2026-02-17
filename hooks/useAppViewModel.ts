@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Device } from '@capacitor/device';
 import { jwtDecode } from 'jwt-decode';
@@ -312,7 +313,7 @@ export const useAppViewModel = () => {
         triggerHaptic(10);
       }
 
-      const updatedTask = { 
+      const updatedTask: Task = { 
         ...task, 
         status: isCompleting ? 'completed' : 'pending',
         completedAt: isCompleting ? new Date().toISOString() : undefined
@@ -362,7 +363,7 @@ export const useAppViewModel = () => {
       });
 
       const allDone = newPrerequisites.length > 0 && newPrerequisites.every(p => p.completed && p.label.trim() !== '');
-      const updatedTask = { 
+      const updatedTask: Task = { 
         ...task, 
         prerequisites: newPrerequisites, 
         status: allDone ? 'completed' : 'pending',
