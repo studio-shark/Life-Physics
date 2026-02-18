@@ -19,11 +19,15 @@
     "react-dom": "^18.2.0",
     "@react-oauth/google": "^0.13.4",
     "jwt-decode": "^4.0.0",
-    "@google/genai": "^1.40.0"
+    "@google/generative-ai": "^0.21.0",
+    "recharts": "^2.12.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/device": "^6.0.0"
   },
   "devDependencies": {
     "vite": "^5.1.4",
     "typescript": "^5.2.2",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "@vitejs/plugin-react": "^4.2.1"
   }
 }
