@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import mysql from 'mysql2/promise';
 import { GoogleAuth, OAuth2Client } from 'google-auth-library';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const app = express();
 const PORT = parseInt(process.env.PORT) || 8080;
@@ -13,7 +13,7 @@ const CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT
 const client = new OAuth2Client(CLIENT_ID);
 
 // Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.API_KEY);
 
 // Middleware for parsing JSON
 app.use(express.json());
@@ -254,12 +254,10 @@ app.post('/api/generate-task', async (req, res) => {
   if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-    });
-    
-    res.json({ result: response.text });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    res.json({ result: response.text() });
   } catch (error) {
     console.error('GenAI Error:', error);
     res.status(500).json({ error: 'Failed to generate content' });
