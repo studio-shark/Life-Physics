@@ -33,22 +33,25 @@ app.use((req, res, next) => {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Database Connection Pool
+// ----------------------------------------------------------------------
+// DATABASE CONNECTION
+// ----------------------------------------------------------------------
+
 const dbConfig = {
-  host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  dateStrings: true // Return dates as strings to match frontend expectations (ISO)
+  dateStrings: true // Return dates as strings to match frontend ISO expectations
 };
 
-// Support Cloud SQL Socket if provided (overrides host)
-if (process.env.INSTANCE_CONNECTION_NAME) {
-  dbConfig.socketPath = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
-  delete dbConfig.host;
+// Handle Unix Socket connection for Cloud SQL if configured
+if (process.env.DB_HOST && process.env.DB_HOST.startsWith('/cloudsql')) {
+  dbConfig.socketPath = process.env.DB_HOST;
+} else {
+  dbConfig.host = process.env.DB_HOST || 'localhost';
 }
 
 const db = mysql.createPool(dbConfig);
@@ -62,6 +65,32 @@ db.getConnection()
   .catch(err => {
     console.error('Failed to initialize database pool:', err);
   });
+
+// ----------------------------------------------------------------------
+// AUTH MIDDLEWARE
+// ----------------------------------------------------------------------
+
+const verifyUser = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ status: 'error', message: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    // Attach user info to request for use in routes
+    req.user = { google_id: payload.sub, email: payload.email };
+    next();
+  } catch (error) {
+    console.error('Auth Verification Error:', error);
+    return res.status(401).json({ status: 'error', message: 'Invalid token' });
+  }
+};
 
 // ----------------------------------------------------------------------
 // SYSTEM ROUTES
@@ -90,7 +119,7 @@ app.get('/api/setup-db', async (req, res) => {
     `);
 
     // 2. Create Tasks table
-    // Note: Prerequisites and other metadata are stored as JSON to maintain app functionality
+    // Including essential fields for app functionality (prerequisites, gamification stats)
     await connection.query(`
       CREATE TABLE IF NOT EXISTS tasks (
         id VARCHAR(255) PRIMARY KEY,
@@ -117,8 +146,10 @@ app.get('/api/setup-db', async (req, res) => {
 });
 
 // ----------------------------------------------------------------------
-// AUTH ROUTE
+// API ROUTES
 // ----------------------------------------------------------------------
+
+// Login Route
 app.post('/api/auth/login', async (req, res) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ error: 'No token provided' });
@@ -150,9 +181,9 @@ app.post('/api/auth/login', async (req, res) => {
       const [rows] = await db.execute('SELECT preferences FROM users WHERE google_id = ?', [googleId]);
       if (rows.length > 0 && rows[0].preferences) {
           preferences = rows[0].preferences;
-           if (typeof preferences === 'string') {
+          if (typeof preferences === 'string') {
               try { preferences = JSON.parse(preferences); } catch(e) {}
-           }
+          }
       }
     } catch (e) {
       console.warn("Failed to fetch preferences", e);
@@ -171,42 +202,15 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Authentication Middleware
-const verifyUser = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ status: 'error', message: 'No token provided' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    // Attach user info to request for use in routes
-    req.user = { google_id: payload.sub, email: payload.email };
-    next();
-  } catch (error) {
-    console.error('Auth Verification Error:', error);
-    return res.status(401).json({ status: 'error', message: 'Invalid token' });
-  }
-};
-
-// ----------------------------------------------------------------------
-// TASK ROUTES
-// ----------------------------------------------------------------------
-
 // GET /api/tasks - Fetch all tasks for the logged-in user
 app.get('/api/tasks', verifyUser, async (req, res) => {
   try {
     const [rows] = await db.execute('SELECT * FROM tasks WHERE user_id = ?', [req.user.google_id]);
     
-    // Parse JSON fields if necessary (mysql2 usually handles this if configured, but safe to check)
+    // Parse JSON fields (prerequisites)
     const tasks = rows.map(task => ({
       ...task,
-      prerequisites: typeof task.prerequisites === 'string' ? JSON.parse(task.prerequisites) : task.prerequisites
+      prerequisites: typeof task.prerequisites === 'string' ? JSON.parse(task.prerequisites) : (task.prerequisites || [])
     }));
 
     res.json({ status: 'success', tasks });
@@ -222,13 +226,13 @@ app.post('/api/tasks', verifyUser, async (req, res) => {
   if (!task.id || !task.title) return res.status(400).json({ status: 'error', message: 'Invalid task data' });
 
   try {
-    // Ensure all optional fields have defaults or valid values
     const query = `
       INSERT INTO tasks (
         id, user_id, title, description, category, status, difficulty, prerequisites, project_id, created_at, completed_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
+    // Map fields, providing defaults for optional columns to prevent DB errors
     const values = [
       task.id,
       req.user.google_id,
@@ -238,7 +242,7 @@ app.post('/api/tasks', verifyUser, async (req, res) => {
       task.status || 'pending',
       task.difficulty || 'Easy Start',
       JSON.stringify(task.prerequisites || []),
-      task.projectId || 'p1', // Map projectId to project_id column
+      task.projectId || 'p1',
       new Date(task.createdAt || Date.now()),
       task.completedAt ? new Date(task.completedAt) : null
     ];
@@ -288,10 +292,7 @@ app.put('/api/tasks/:id', verifyUser, async (req, res) => {
   }
 });
 
-// ----------------------------------------------------------------------
-// USER SETTINGS ROUTES
-// ----------------------------------------------------------------------
-
+// GET /api/user/settings
 app.get('/api/user/settings', verifyUser, async (req, res) => {
   try {
     const [rows] = await db.execute('SELECT preferences FROM users WHERE google_id = ?', [req.user.google_id]);
@@ -303,6 +304,7 @@ app.get('/api/user/settings', verifyUser, async (req, res) => {
   }
 });
 
+// PUT /api/user/settings
 app.put('/api/user/settings', verifyUser, async (req, res) => {
   const newSettings = req.body;
   try {
@@ -321,10 +323,7 @@ app.put('/api/user/settings', verifyUser, async (req, res) => {
   }
 });
 
-// ----------------------------------------------------------------------
-// AI ROUTE
-// ----------------------------------------------------------------------
-
+// AI Route
 app.post('/api/generate-task', async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
