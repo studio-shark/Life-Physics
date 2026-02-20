@@ -49,10 +49,10 @@ const dbConfig = {
 };
 
 // Handle Unix Socket connection for Cloud SQL if configured
-if (process.env.DB_HOST && process.env.DB_HOST.startsWith('/cloudsql')) {
-  dbConfig.socketPath = process.env.DB_HOST;
+if (process.env.INSTANCE_CONNECTION_NAME) {
+  dbConfig.socketPath = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
 } else {
-  dbConfig.host = process.env.DB_HOST || 'localhost';
+  dbConfig.host = process.env.DB_HOST || '127.0.0.1';
 }
 
 const db = mysql.createPool(dbConfig);
