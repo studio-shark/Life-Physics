@@ -1,9 +1,9 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import mysql from 'mysql2/promise';
 import { OAuth2Client } from 'google-auth-library';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import db from './db.js';
 
 const app = express();
 const PORT = parseInt(process.env.PORT) || 8080;
@@ -33,39 +33,6 @@ app.use((req, res, next) => {
 // Resolve __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// ----------------------------------------------------------------------
-// DATABASE CONNECTION
-// ----------------------------------------------------------------------
-
-const dbConfig = {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  dateStrings: true // Return dates as strings to match frontend ISO expectations
-};
-
-// Handle Unix Socket connection for Cloud SQL if configured
-if (process.env.INSTANCE_CONNECTION_NAME) {
-  dbConfig.socketPath = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
-} else {
-  dbConfig.host = process.env.DB_HOST || '127.0.0.1';
-}
-
-const db = mysql.createPool(dbConfig);
-
-// Test Database Connection
-db.getConnection()
-  .then(connection => {
-    console.log('Database pool initialized successfully');
-    connection.release();
-  })
-  .catch(err => {
-    console.error('Failed to initialize database pool:', err);
-  });
 
 // ----------------------------------------------------------------------
 // AUTH MIDDLEWARE
@@ -101,8 +68,15 @@ const verifyUser = async (req, res, next) => {
 // ----------------------------------------------------------------------
 
 // Health Check for Cloud Run
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
+app.get('/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    console.log('Health check: Database connected');
+    res.status(200).send('OK');
+  } catch (err) {
+    console.error('Health check failed:', err);
+    res.status(500).send('Database connection failed');
+  }
 });
 
 // DB Setup Endpoint
