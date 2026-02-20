@@ -1,8 +1,8 @@
-# Life Physics Architect
+# Life Architect
 
 **Master your daily flow with the world's first physics-based strategic checklist.**
 
-Life Physics Architect transforms your daily habits into energy vectors, helping you visualize progress through the laws of motion. It combines strategic task management with RPG-like progression systems to build resilience and momentum.
+Life Architect transforms your daily habits into energy vectors, helping you visualize progress through the laws of motion. It combines strategic task management with RPG-like progression systems to build resilience and momentum.
 
 ## Features
 

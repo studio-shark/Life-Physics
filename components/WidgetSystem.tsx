@@ -53,7 +53,7 @@ const WidgetSystem: React.FC<WidgetSystemProps> = ({ level, xp, xpToNextLevel, t
       'To add widgets manually:\n\n' +
       '1. Long-press your home screen\n' +
       '2. Tap "Widgets"\n' +
-      '3. Find "Life Physics Architect"\n' +
+      '3. Find "Life Architect"\n' +
       '4. Drag the widget to your home screen'
     );
   };

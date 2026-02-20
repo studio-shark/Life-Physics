@@ -1,7 +1,7 @@
 {
-  "name": "life-physics",
+  "name": "life-architect",
   "version": "1.0.0",
-  "description": "Life Physics - Science of Habits and Emotions",
+  "description": "Life Architect - Science of Habits and Emotions",
   "private": true,
   "type": "module",
   "scripts": {

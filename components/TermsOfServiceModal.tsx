@@ -43,7 +43,7 @@ const TermsOfServiceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
 
           <section>
             <h3 className="text-slate-900 dark:text-white font-bold text-base mb-2">4. Intellectual Property</h3>
-            <p>The Service and its original content, features and functionality are and will remain the exclusive property of Life Physics Architect and its licensors.</p>
+            <p>The Service and its original content, features and functionality are and will remain the exclusive property of Life Architect and its licensors.</p>
           </section>
 
           <section>
@@ -53,7 +53,7 @@ const TermsOfServiceModal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
 
           <section>
             <h3 className="text-slate-900 dark:text-white font-bold text-base mb-2">6. Limitation of Liability</h3>
-            <p>In no event shall Life Physics Architect, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use the Service; (ii) any conduct or content of any third party on the Service; (iii) any content obtained from the Service; and (iv) unauthorized access, use or alteration of your transmissions or content, whether based on warranty, contract, tort (including negligence) or any other legal theory, whether or not we have been informed of the possibility of such damage, and even if a remedy set forth herein is found to have failed of its essential purpose.</p>
+            <p>In no event shall Life Architect, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use the Service; (ii) any conduct or content of any third party on the Service; (iii) any content obtained from the Service; and (iv) unauthorized access, use or alteration of your transmissions or content, whether based on warranty, contract, tort (including negligence) or any other legal theory, whether or not we have been informed of the possibility of such damage, and even if a remedy set forth herein is found to have failed of its essential purpose.</p>
           </section>
 
           <section>

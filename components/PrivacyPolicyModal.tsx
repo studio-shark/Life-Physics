@@ -28,7 +28,7 @@ const PrivacyPolicyModal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
           
           <section>
             <h3 className="text-slate-900 dark:text-white font-bold text-base mb-2">1. Introduction</h3>
-            <p>Welcome to Life Physics Architect. We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we look after your personal data when you visit our application and tell you about your privacy rights and how the law protects you.</p>
+            <p>Welcome to Life Architect. We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you as to how we look after your personal data when you visit our application and tell you about your privacy rights and how the law protects you.</p>
           </section>
 
           <section>
