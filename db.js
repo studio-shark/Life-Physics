@@ -2,7 +2,7 @@ import mysql from 'mysql2/promise';
 
 const dbConfig = {
   user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  password: process.env.DB_PASS || process.env.DB_PASSWORD, // Support both variable names
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 5, // Reduced limit for serverless environment
