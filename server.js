@@ -200,6 +200,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     // 4. Return user profile
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     res.json({
         status: 'success',
         user: { id: googleId, email, name, picture, preferences },

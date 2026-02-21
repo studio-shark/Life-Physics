@@ -10,7 +10,7 @@ const dbConfig = {
   dateStrings: true // Return dates as strings to match frontend ISO expectations
 };
 
-// Robust Environment Detection
+// Strict Production Config
 // Priority 1: Explicit INSTANCE_CONNECTION_NAME (Standard Cloud Run)
 if (process.env.INSTANCE_CONNECTION_NAME) {
   dbConfig.socketPath = `/cloudsql/${process.env.INSTANCE_CONNECTION_NAME}`;
@@ -35,10 +35,12 @@ db.getConnection()
   })
   .catch(err => {
     console.error('Failed to initialize database pool:', err);
-    console.error('Error Code:', err.code);
-    console.error('Error Number:', err.errno);
-    console.error('Syscall:', err.syscall);
-    console.error('Address:', err.address);
+    // Detailed Error Logging
+    console.error('Full Error Object:', JSON.stringify(err, null, 2));
+    if (err.code) console.error('Error Code:', err.code);
+    if (err.errno) console.error('Error Number:', err.errno);
+    if (err.syscall) console.error('Syscall:', err.syscall);
+    if (err.address) console.error('Address:', err.address);
   });
 
 export default db;
