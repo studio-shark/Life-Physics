@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise';
 
 const dbConfig = {
-  user: process.env.DB_USER,
+  user: process.env.DB_USER || 'life', // Fallback to 'life'
   password: process.env.DB_PASS || process.env.DB_PASSWORD, // Support both variable names
   database: process.env.DB_NAME,
   waitForConnections: true,
@@ -9,6 +9,8 @@ const dbConfig = {
   queueLimit: 0,
   dateStrings: true // Return dates as strings to match frontend ISO expectations
 };
+
+console.log('Attempting DB connection with user:', dbConfig.user);
 
 // Strict Production Config
 // Priority 1: Explicit INSTANCE_CONNECTION_NAME (Standard Cloud Run)
