@@ -177,6 +177,19 @@ app.get('/api/setup-db', async (req, res) => {
         FOREIGN KEY (user_id) REFERENCES users(google_id) ON DELETE CASCADE
       )
     `);
+
+    // 3. Create Notes table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS notes (
+        id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        title VARCHAR(255),
+        content TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(google_id) ON DELETE CASCADE
+      )
+    `);
     
     connection.release();
     res.json({ message: 'Database setup completed successfully' });
@@ -342,6 +355,90 @@ app.put('/api/tasks/:id', verifyUser, async (req, res) => {
   } catch (err) {
     console.error('Update Task Error:', err);
     res.status(500).json({ status: 'error', message: 'Failed to update task' });
+  }
+});
+
+// GET /api/notes - Fetch all notes for the logged-in user
+app.get('/api/notes', verifyUser, async (req, res) => {
+  try {
+    const [rows] = await db.execute('SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC', [req.user.google_id]);
+    res.json({ status: 'success', notes: rows });
+  } catch (err) {
+    console.error('Fetch Notes Error:', err);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch notes' });
+  }
+});
+
+// POST /api/notes - Create a new note
+app.post('/api/notes', verifyUser, async (req, res) => {
+  const note = req.body;
+  if (!note.id || !note.title) return res.status(400).json({ status: 'error', message: 'Invalid note data' });
+
+  try {
+    const query = `
+      INSERT INTO notes (id, user_id, title, content, created_at) 
+      VALUES (?, ?, ?, ?, ?)
+    `;
+    
+    await db.execute(query, [
+      note.id,
+      req.user.google_id,
+      note.title,
+      note.content || '',
+      new Date(note.createdAt || Date.now())
+    ]);
+    
+    res.json({ status: 'success', message: 'Note created successfully' });
+  } catch (err) {
+    console.error('Create Note Error:', err);
+    res.status(500).json({ status: 'error', message: 'Failed to create note' });
+  }
+});
+
+// PUT /api/notes/:id - Update an existing note
+app.put('/api/notes/:id', verifyUser, async (req, res) => {
+  const { id } = req.params;
+  const note = req.body;
+
+  try {
+    const query = `
+      UPDATE notes 
+      SET title = ?, content = ?
+      WHERE id = ? AND user_id = ?
+    `;
+
+    const [result] = await db.execute(query, [
+      note.title,
+      note.content,
+      id,
+      req.user.google_id
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ status: 'error', message: 'Note not found or unauthorized' });
+    }
+
+    res.json({ status: 'success', message: 'Note updated successfully' });
+  } catch (err) {
+    console.error('Update Note Error:', err);
+    res.status(500).json({ status: 'error', message: 'Failed to update note' });
+  }
+});
+
+// DELETE /api/notes/:id - Delete a note
+app.delete('/api/notes/:id', verifyUser, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [result] = await db.execute('DELETE FROM notes WHERE id = ? AND user_id = ?', [id, req.user.google_id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ status: 'error', message: 'Note not found or unauthorized' });
+    }
+    
+    res.json({ status: 'success', message: 'Note deleted successfully' });
+  } catch (err) {
+    console.error('Delete Note Error:', err);
+    res.status(500).json({ status: 'error', message: 'Failed to delete note' });
   }
 });
 

@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Device } from '@capacitor/device';
 import { jwtDecode } from 'jwt-decode';
-import { Task, AppTab, Project, User, AuthUser, Prerequisite } from '../types.ts';
+import { Task, AppTab, Project, User, AuthUser, Prerequisite, Note } from '../types.ts';
 import { API_BASE_URL } from '../services/api.ts';
 import { 
   INITIAL_TASKS, 
@@ -27,6 +27,7 @@ export const useAppViewModel = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | 'all'>('all');
   
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [xp, setXp] = useState(0);
@@ -153,22 +154,27 @@ export const useAppViewModel = () => {
       localStorage.setItem(`${STORAGE_PREFIX}auth_token`, token);
       
       // 4. Load cloud data (Merged)
-      const res = await fetch(`${API_BASE_URL}/api/tasks`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const [tasksRes, notesRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/tasks`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/api/notes`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
       
-      const data = await res.json();
-      if (data.status === 'success' && data.tasks) {
+      const tasksData = await tasksRes.json();
+      if (tasksData.status === 'success' && tasksData.tasks) {
          // Parse prerequisites JSON string from DB
-         const parsedTasks = data.tasks.map((t: any) => ({
+         const parsedTasks = tasksData.tasks.map((t: any) => ({
            ...t,
            prerequisites: typeof t.prerequisites === 'string' ? JSON.parse(t.prerequisites) : t.prerequisites
          }));
          setTasks(parsedTasks);
-         setSyncStatus('synced');
       }
+
+      const notesData = await notesRes.json();
+      if (notesData.status === 'success' && notesData.notes) {
+         setNotes(notesData.notes);
+      }
+      
+      setSyncStatus('synced');
 
     } catch (e) {
       console.error("Login processing error", e);
@@ -183,6 +189,7 @@ export const useAppViewModel = () => {
     setAuthUser(null);
     setGoogleToken(null);
     setTasks([]);
+    setNotes([]);
     localStorage.removeItem(`${STORAGE_PREFIX}auth_token`);
     
     // Re-initialize hardware identity
@@ -206,6 +213,7 @@ export const useAppViewModel = () => {
         if (saved) {
             const parsed = JSON.parse(saved);
             setTasks(parsed.tasks || INITIAL_TASKS);
+            setNotes(parsed.notes || []);
             setProjects(parsed.projects || INITIAL_PROJECTS);
             setUsers(parsed.users || INITIAL_USERS);
             setXp(parsed.xp || 0);
@@ -215,6 +223,7 @@ export const useAppViewModel = () => {
             setSelectedAvatarId(parsed.selectedAvatarId || 'default');
         } else {
             setTasks(INITIAL_TASKS);
+            setNotes([]);
             setProjects(INITIAL_PROJECTS);
             setUsers(INITIAL_USERS);
         }
@@ -272,6 +281,7 @@ export const useAppViewModel = () => {
                 setSelectedAvatarId(parsed.selectedAvatarId || 'default');
             } else {
                 setTasks(INITIAL_TASKS);
+                setNotes([]);
                 setProjects(INITIAL_PROJECTS);
                 setUsers(INITIAL_USERS);
             }
@@ -317,17 +327,39 @@ export const useAppViewModel = () => {
     }
   };
 
+  const syncNoteToCloud = async (note: Note, method: 'POST' | 'PUT' | 'DELETE') => {
+    if (!authUser || !googleToken || !isOnline || authUser.token === 'hardware_identity') return;
+    
+    const url = method === 'POST' ? `${API_BASE_URL}/api/notes` : `${API_BASE_URL}/api/notes/${note.id}`;
+    
+    try {
+        setSyncStatus('syncing');
+        await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${googleToken}`
+            },
+            body: method !== 'DELETE' ? JSON.stringify(note) : undefined
+        });
+        setSyncStatus('synced');
+    } catch (e) {
+        console.error(`Failed to ${method} note`, e);
+        setSyncStatus('error');
+    }
+  };
+
   // Local Storage Fallback (only for Guest/Hardware user)
   useEffect(() => {
     if (authUser && authUser.token === 'hardware_identity') {
-      const stateToSave = { tasks, projects, users, xp, coins, level, authUser, ownedAvatarIds, selectedAvatarId };
+      const stateToSave = { tasks, notes, projects, users, xp, coins, level, authUser, ownedAvatarIds, selectedAvatarId };
       const storageKey = STORAGE_PREFIX + authUser.id;
       localStorage.setItem(storageKey, JSON.stringify(stateToSave));
       
       const pendingCount = tasks.filter(t => t.status === 'pending').length;
       updateAppBadge(pendingCount);
     }
-  }, [tasks, projects, users, xp, coins, level, authUser, updateAppBadge, ownedAvatarIds, selectedAvatarId]);
+  }, [tasks, notes, projects, users, xp, coins, level, authUser, updateAppBadge, ownedAvatarIds, selectedAvatarId]);
 
   const buyAvatar = useCallback((id: string, price: number) => {
     if (coins >= price && !ownedAvatarIds.includes(id)) {
@@ -560,6 +592,39 @@ export const useAppViewModel = () => {
     }
   }, []);
 
+  const addNote = useCallback(async (title: string, content: string) => {
+    const newNote: Note = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: authUser?.id || 'guest',
+      title,
+      content,
+      createdAt: new Date().toISOString()
+    };
+
+    setNotes(prev => [newNote, ...prev]);
+    syncNoteToCloud(newNote, 'POST');
+    triggerHaptic(20);
+  }, [authUser, googleToken, isOnline]);
+
+  const updateNote = useCallback(async (id: string, updates: Partial<Note>) => {
+    setNotes(prev => {
+      const note = prev.find(n => n.id === id);
+      if (!note) return prev;
+      const updatedNote = { ...note, ...updates, updatedAt: new Date().toISOString() };
+      syncNoteToCloud(updatedNote, 'PUT');
+      return prev.map(n => n.id === id ? updatedNote : n);
+    });
+  }, [authUser, googleToken, isOnline]);
+
+  const deleteNote = useCallback(async (id: string) => {
+    const noteToDelete = notes.find(n => n.id === id);
+    if (noteToDelete) {
+      syncNoteToCloud(noteToDelete, 'DELETE');
+    }
+    setNotes(prev => prev.filter(n => n.id !== id));
+    triggerHaptic(30);
+  }, [notes, authUser, googleToken, isOnline]);
+
   const toggleTheme = useCallback(() => {
     setTheme(prev => {
       const newTheme = prev === 'dark' ? 'light' : 'dark';
@@ -590,6 +655,7 @@ export const useAppViewModel = () => {
     state: {
       activeTab,
       tasks,
+      notes,
       allTasks: tasks,
       projects,
       selectedProjectId,
@@ -621,6 +687,9 @@ export const useAppViewModel = () => {
       addCalendarReminder,
       buyAvatar,
       selectAvatar,
+      addNote,
+      updateNote,
+      deleteNote,
       toggleTheme,
       handleGoogleLogin,
       logout
