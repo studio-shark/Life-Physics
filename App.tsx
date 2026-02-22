@@ -9,6 +9,7 @@ import SettingsPanel from './components/SettingsPanel.tsx';
 import Header from './components/Header.tsx';
 import { useAppViewModel } from './hooks/useAppViewModel.ts';
 import { useWidgetSync } from './hooks/useWidgetSync.ts';
+import { generateTaskAI } from './services/api.ts';
 
 const groupTasksByDate = (tasks: Task[]) => {
   const groups: Record<string, Task[]> = {
@@ -48,6 +49,8 @@ const App: React.FC = () => {
   const { state, actions } = useAppViewModel();
   const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
   const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { 
@@ -79,6 +82,28 @@ const App: React.FC = () => {
 
   // Sync widgets with native Android
   useWidgetSync(level, xp, xpToNextLevel, tasks);
+
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+    await actions.addTask(newTaskTitle);
+    setNewTaskTitle('');
+  };
+
+  const handleGenerateTask = async () => {
+    if (!newTaskTitle.trim()) return;
+    setIsGenerating(true);
+    try {
+      const { result } = await generateTaskAI(newTaskTitle);
+      // Use the generated text as description
+      await actions.addTask(newTaskTitle, result);
+      setNewTaskTitle('');
+    } catch (error) {
+      console.error("Failed to generate task", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const navItems = [
     { id: AppTab.CHECKLIST, label: 'Tasks', icon: <ICONS.Check />, color: 'text-emerald-400' },
@@ -266,6 +291,52 @@ const App: React.FC = () => {
         <div className="max-w-4xl mx-auto mt-8 md:mt-0">
           {activeTab === AppTab.CHECKLIST && (
             <div className="grid gap-8">
+              <div className="mb-2">
+                <form onSubmit={handleCreateTask} className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="relative flex items-center bg-white dark:bg-[#111214] border border-slate-200 dark:border-slate-800 rounded-2xl p-2 shadow-xl">
+                    <div className="p-3 text-slate-400">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      placeholder="Initialize new protocol..."
+                      className="flex-1 bg-transparent border-none outline-none text-slate-900 dark:text-white placeholder:text-slate-400 font-bold text-lg h-12"
+                    />
+                    <div className="flex gap-2">
+                      <button 
+                        type="button"
+                        onClick={handleGenerateTask}
+                        disabled={!newTaskTitle.trim() || isGenerating}
+                        className="p-3 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-all disabled:opacity-50"
+                        title="Generate with AI"
+                      >
+                        {isGenerating ? (
+                          <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        ) : (
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        )}
+                      </button>
+                      <button 
+                        type="submit"
+                        disabled={!newTaskTitle.trim() || isGenerating}
+                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Initialize
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
               {isLoading ? (
                 // Skeleton Loading State for Checklist
                 Array.from({ length: 4 }).map((_, i) => (
