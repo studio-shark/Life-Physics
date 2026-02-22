@@ -208,7 +208,7 @@ app.post('/api/auth/login', async (req, res) => {
     const name = payload.name;
     const picture = payload.picture;
 
-    // 2. Upsert User
+    // 2. Upsert User (Create if not exists, update if exists)
     const query = `
       INSERT INTO users (google_id, email, name, picture, preferences) 
       VALUES (?, ?, ?, ?, '{}') 
@@ -230,7 +230,7 @@ app.post('/api/auth/login', async (req, res) => {
       console.warn("Failed to fetch preferences", e);
     }
 
-    // 4. Return user profile & Set Session
+    // 4. Return user profile & Set Persistent Session
     const userData = { id: googleId, email, name, picture, preferences };
     req.session.user = { google_id: googleId, email, name, picture }; // Store minimal info in session
     
