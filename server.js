@@ -271,7 +271,8 @@ app.post('/api/auth/login', async (req, res) => {
 // GET /api/tasks - Fetch all tasks for the logged-in user
 app.get('/api/tasks', verifyUser, async (req, res) => {
   try {
-    const [rows] = await db.execute('SELECT * FROM tasks WHERE user_id = ?', [req.user.google_id]);
+    const userId = req.session?.user?.google_id || req.user.google_id;
+    const [rows] = await db.execute('SELECT * FROM tasks WHERE user_id = ?', [userId]);
     
     // Parse JSON fields (prerequisites)
     const tasks = rows.map(task => ({
@@ -282,16 +283,17 @@ app.get('/api/tasks', verifyUser, async (req, res) => {
     res.json({ status: 'success', tasks });
   } catch (err) {
     console.error('Fetch Tasks Error:', err);
-    res.status(500).json({ status: 'error', message: 'Failed to fetch tasks' });
+    res.status(500).json({ status: 'error', message: 'Failed to fetch tasks', details: err.message });
   }
 });
 
 // POST /api/tasks - Create a new task
 app.post('/api/tasks', verifyUser, async (req, res) => {
   const task = req.body;
-  if (!task.id || !task.title) return res.status(400).json({ status: 'error', message: 'Invalid task data' });
+  if (!task.id || !task.title) return res.status(400).json({ status: 'error', message: 'Invalid task data: id and title are required' });
 
   try {
+    const userId = req.session?.user?.google_id || req.user.google_id;
     const query = `
       INSERT INTO tasks (
         id, user_id, title, description, category, status, difficulty, prerequisites, project_id, created_at, completed_at
@@ -301,7 +303,7 @@ app.post('/api/tasks', verifyUser, async (req, res) => {
     // Map fields, providing defaults for optional columns to prevent DB errors
     const values = [
       task.id,
-      req.user.google_id,
+      userId,
       task.title,
       task.description || '',
       task.category || 'Habits',
@@ -317,7 +319,7 @@ app.post('/api/tasks', verifyUser, async (req, res) => {
     res.json({ status: 'success', message: 'Task created successfully' });
   } catch (err) {
     console.error('Create Task Error:', err);
-    res.status(500).json({ status: 'error', message: 'Failed to create task' });
+    res.status(500).json({ status: 'error', message: 'Failed to create task', details: err.message });
   }
 });
 
@@ -327,6 +329,7 @@ app.put('/api/tasks/:id', verifyUser, async (req, res) => {
   const task = req.body;
 
   try {
+    const userId = req.session?.user?.google_id || req.user.google_id;
     const query = `
       UPDATE tasks 
       SET title = ?, description = ?, category = ?, status = ?, difficulty = ?, completed_at = ?, prerequisites = ?
@@ -335,14 +338,14 @@ app.put('/api/tasks/:id', verifyUser, async (req, res) => {
 
     const values = [
       task.title,
-      task.description,
-      task.category,
-      task.status,
-      task.difficulty,
+      task.description || '',
+      task.category || 'Habits',
+      task.status || 'pending',
+      task.difficulty || 'Easy Start',
       task.completedAt ? new Date(task.completedAt) : null,
       JSON.stringify(task.prerequisites || []),
       id,
-      req.user.google_id
+      userId
     ];
 
     const [result] = await db.execute(query, values);
@@ -354,27 +357,29 @@ app.put('/api/tasks/:id', verifyUser, async (req, res) => {
     res.json({ status: 'success', message: 'Task updated successfully' });
   } catch (err) {
     console.error('Update Task Error:', err);
-    res.status(500).json({ status: 'error', message: 'Failed to update task' });
+    res.status(500).json({ status: 'error', message: 'Failed to update task', details: err.message });
   }
 });
 
 // GET /api/notes - Fetch all notes for the logged-in user
 app.get('/api/notes', verifyUser, async (req, res) => {
   try {
-    const [rows] = await db.execute('SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC', [req.user.google_id]);
+    const userId = req.session?.user?.google_id || req.user.google_id;
+    const [rows] = await db.execute('SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC', [userId]);
     res.json({ status: 'success', notes: rows });
   } catch (err) {
     console.error('Fetch Notes Error:', err);
-    res.status(500).json({ status: 'error', message: 'Failed to fetch notes' });
+    res.status(500).json({ status: 'error', message: 'Failed to fetch notes', details: err.message });
   }
 });
 
 // POST /api/notes - Create a new note
 app.post('/api/notes', verifyUser, async (req, res) => {
   const note = req.body;
-  if (!note.id || !note.title) return res.status(400).json({ status: 'error', message: 'Invalid note data' });
+  if (!note.id || !note.title) return res.status(400).json({ status: 'error', message: 'Invalid note data: id and title are required' });
 
   try {
+    const userId = req.session?.user?.google_id || req.user.google_id;
     const query = `
       INSERT INTO notes (id, user_id, title, content, created_at) 
       VALUES (?, ?, ?, ?, ?)
@@ -382,7 +387,7 @@ app.post('/api/notes', verifyUser, async (req, res) => {
     
     await db.execute(query, [
       note.id,
-      req.user.google_id,
+      userId,
       note.title,
       note.content || '',
       new Date(note.createdAt || Date.now())
@@ -391,7 +396,7 @@ app.post('/api/notes', verifyUser, async (req, res) => {
     res.json({ status: 'success', message: 'Note created successfully' });
   } catch (err) {
     console.error('Create Note Error:', err);
-    res.status(500).json({ status: 'error', message: 'Failed to create note' });
+    res.status(500).json({ status: 'error', message: 'Failed to create note', details: err.message });
   }
 });
 
@@ -401,6 +406,7 @@ app.put('/api/notes/:id', verifyUser, async (req, res) => {
   const note = req.body;
 
   try {
+    const userId = req.session?.user?.google_id || req.user.google_id;
     const query = `
       UPDATE notes 
       SET title = ?, content = ?
@@ -409,9 +415,9 @@ app.put('/api/notes/:id', verifyUser, async (req, res) => {
 
     const [result] = await db.execute(query, [
       note.title,
-      note.content,
+      note.content || '',
       id,
-      req.user.google_id
+      userId
     ]);
 
     if (result.affectedRows === 0) {
@@ -421,7 +427,7 @@ app.put('/api/notes/:id', verifyUser, async (req, res) => {
     res.json({ status: 'success', message: 'Note updated successfully' });
   } catch (err) {
     console.error('Update Note Error:', err);
-    res.status(500).json({ status: 'error', message: 'Failed to update note' });
+    res.status(500).json({ status: 'error', message: 'Failed to update note', details: err.message });
   }
 });
 
@@ -429,7 +435,8 @@ app.put('/api/notes/:id', verifyUser, async (req, res) => {
 app.delete('/api/notes/:id', verifyUser, async (req, res) => {
   const { id } = req.params;
   try {
-    const [result] = await db.execute('DELETE FROM notes WHERE id = ? AND user_id = ?', [id, req.user.google_id]);
+    const userId = req.session?.user?.google_id || req.user.google_id;
+    const [result] = await db.execute('DELETE FROM notes WHERE id = ? AND user_id = ?', [id, userId]);
     
     if (result.affectedRows === 0) {
       return res.status(404).json({ status: 'error', message: 'Note not found or unauthorized' });
@@ -438,7 +445,7 @@ app.delete('/api/notes/:id', verifyUser, async (req, res) => {
     res.json({ status: 'success', message: 'Note deleted successfully' });
   } catch (err) {
     console.error('Delete Note Error:', err);
-    res.status(500).json({ status: 'error', message: 'Failed to delete note' });
+    res.status(500).json({ status: 'error', message: 'Failed to delete note', details: err.message });
   }
 });
 

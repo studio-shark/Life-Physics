@@ -9,7 +9,6 @@ import SettingsPanel from './components/SettingsPanel.tsx';
 import Header from './components/Header.tsx';
 import { useAppViewModel } from './hooks/useAppViewModel.ts';
 import { useWidgetSync } from './hooks/useWidgetSync.ts';
-import { generateTaskAI } from './services/api.ts';
 
 const groupTasksByDate = (tasks: Task[]) => {
   const groups: Record<string, Task[]> = {
@@ -50,7 +49,6 @@ const App: React.FC = () => {
   const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { 
@@ -88,21 +86,6 @@ const App: React.FC = () => {
     if (!newTaskTitle.trim()) return;
     await actions.addTask(newTaskTitle);
     setNewTaskTitle('');
-  };
-
-  const handleGenerateTask = async () => {
-    if (!newTaskTitle.trim()) return;
-    setIsGenerating(true);
-    try {
-      const { result } = await generateTaskAI(newTaskTitle);
-      // Use the generated text as description
-      await actions.addTask(newTaskTitle, result);
-      setNewTaskTitle('');
-    } catch (error) {
-      console.error("Failed to generate task", error);
-    } finally {
-      setIsGenerating(false);
-    }
   };
 
   const navItems = [
@@ -309,25 +292,8 @@ const App: React.FC = () => {
                     />
                     <div className="flex gap-2">
                       <button 
-                        type="button"
-                        onClick={handleGenerateTask}
-                        disabled={!newTaskTitle.trim() || isGenerating}
-                        className="p-3 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-all disabled:opacity-50"
-                        title="Generate with AI"
-                      >
-                        {isGenerating ? (
-                          <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                        ) : (
-                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                        )}
-                      </button>
-                      <button 
                         type="submit"
-                        disabled={!newTaskTitle.trim() || isGenerating}
+                        disabled={!newTaskTitle.trim()}
                         className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Initialize
