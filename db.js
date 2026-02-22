@@ -10,8 +10,8 @@ const dbConfig = {
   dateStrings: true // Return dates as strings to match frontend ISO expectations
 };
 
-console.log('Attempting DB connection with user:', dbConfig.user);
-console.log('Password provided:', !!dbConfig.password);
+console.log('Database User:', dbConfig.user);
+console.log('Password exists in env:', !!(process.env.DB_PASSWORD || process.env.DB_PASS));
 
 // Strict Production Config
 // Priority 1: Explicit INSTANCE_CONNECTION_NAME (Standard Cloud Run)
